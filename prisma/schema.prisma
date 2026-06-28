@@ -1,0 +1,47 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  STUDENT
+  VOLUNTEER
+}
+
+model User {
+  id           String         @id @default(uuid())
+  name         String
+  email        String         @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime       @default(now())
+  registration Registration?
+
+  @@map("users")
+}
+
+model Registration {
+  id                 String   @id @default(uuid())
+  student            User     @relation(fields: [studentId], references: [id])
+  studentId          String   @unique
+  registrationNumber String   @unique
+  paymentStatus      Boolean  @default(false)
+  checkedIn          Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  ticket             Ticket?
+
+  @@map("registrations")
+}
+
+model Ticket {
+  id             String       @id @default(uuid())
+  registration   Registration @relation(fields: [registrationId], references: [id])
+  registrationId String       @unique
+  qrCode         String       @db.Text
+  issuedAt       DateTime     @default(now())
+
+  @@map("tickets")
+}
