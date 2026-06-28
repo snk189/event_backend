@@ -1,91 +1,309 @@
-# 🎉 IEEE RVCE Tech Fest Registration System (Backend)
+# IEEE RVCE Tech Fest Registration System (Backend)
 
-Welcome to the backend repository for the **IEEE RVCE Tech Fest Registration System**! 
+A secure and scalable REST API built for the IEEE RVCE Tech Fest Registration System.
 
-This project was built to deliver a production-ready, scalable, and secure API to handle student registrations, payment confirmations, and volunteer check-ins during the fest. It is crafted with a strong focus on clean architecture, ensuring the code is as easy to read and maintain as it is robust.
+The backend handles the complete event lifecycle:
+- Student Authentication
+- Event Registration
+- Payment Confirmation (Simulated)
+- QR Ticket Generation
+- Volunteer Check-in
 
----
-
-## 🛠️ Built With...
-- **Node.js & Express.js**: Our core runtime and web framework.
-- **TypeScript**: Because we all love type safety and fewer runtime bugs!
-- **Prisma & PostgreSQL**: For a reliable, strongly-typed database layer.
-- **Zod**: To rigorously validate every piece of data coming into our API.
-- **JWT & bcrypt**: For secure authentication and password hashing.
+The project follows Clean Architecture principles with proper separation of concerns for maintainability and scalability.
 
 ---
 
-## 🚀 Getting Started
+# Tech Stack
 
-Follow these steps to get a local copy up and running on your machine.
+- Node.js
+- Express.js
+- TypeScript
+- PostgreSQL
+- Prisma ORM
+- JWT Authentication
+- bcrypt
+- Zod Validation
+- QRCode
 
-### 1. Prerequisites
-Make sure you have the following installed:
-- [Node.js](https://nodejs.org/) (v18 or higher)
-- [PostgreSQL](https://www.postgresql.org/) (Running locally or via a cloud provider)
+---
 
-### 2. Installation
-Clone the repository, navigate into the folder, and install the dependencies:
+# Features
+
+## Authentication
+
+- Student Registration
+- Volunteer Registration
+- Login using JWT
+- Password Hashing with bcrypt
+
+## Student
+
+- Register for Event
+- Prevent Duplicate Registrations
+- Simulated Payment Confirmation
+- QR Ticket Generation
+- View Ticket
+
+## Volunteer
+
+- View All Registrations
+- QR Based Student Check-in
+- Prevent Duplicate Check-ins
+
+## Security
+
+- JWT Authentication
+- Role Based Authorization
+- Password Hashing
+- Request Validation using Zod
+- Centralized Error Handling
+
+---
+
+# Project Structure
+
+```
+src/
+│
+├── config/
+├── controllers/
+├── middleware/
+├── repositories/
+├── routes/
+├── services/
+├── types/
+├── utils/
+├── validations/
+│
+├── app.ts
+└── server.ts
+```
+
+### Folder Responsibilities
+
+| Folder | Responsibility |
+|---------|---------------|
+| controllers | Handle HTTP requests/responses |
+| services | Business Logic |
+| repositories | Database Operations |
+| middleware | Authentication, Authorization, Validation |
+| validations | Zod Schemas |
+| utils | Helper Functions |
+| routes | API Endpoints |
+| config | Environment Configuration |
+
+---
+
+# Installation
+
+Clone the repository
+
+```bash
+git clone <repository-url>
+cd ieee
+```
+
+Install dependencies
+
 ```bash
 npm install
 ```
 
-### 3. Environment Variables
-Create a `.env` file in the root of the project (if it isn't already there) and add your database configuration:
+---
+
+# Environment Variables
+
+Create a `.env` file.
+
 ```env
 PORT=3000
-# Replace with your actual Postgres credentials
+
 DATABASE_URL="postgresql://postgres:password@localhost:5432/ieee_rvce?schema=public&sslmode=disable"
-JWT_SECRET="super-secret-jwt-key-change-in-production"
+
+JWT_SECRET="your-secret-key"
+
 JWT_EXPIRES_IN="1d"
 ```
 
-### 4. Database Setup
-Let's get your database ready! Prisma will automatically map the schema and create the tables for you. Run:
+---
+
+# Database Setup
+
+Generate Prisma Client
+
 ```bash
 npx prisma generate
+```
+
+Push Schema
+
+```bash
 npx prisma db push
 ```
 
-### 5. Fire it up!
-You're all set. Start the development server with hot-reloading:
+---
+
+# Run Project
+
+Development
+
 ```bash
 npm run dev
 ```
-*(Your server should now be happily humming on port 3000!)*
+
+Production Build
+
+```bash
+npm run build
+```
+
+Run Production
+
+```bash
+npm start
+```
 
 ---
 
-## 📂 How It's Organized (Clean Architecture)
+# API Endpoints
 
-We believe in keeping things tidy. Here is how the project is structured:
+## Authentication
 
-- **`src/config/`**: Where we handle environment variables and global configurations.
-- **`src/controllers/`**: The traffic cops. They receive HTTP requests, call the right services, and send back the responses. No heavy lifting here!
-- **`src/services/`**: The brain of the app. All business logic (like idempotency checks and QR generation) lives here.
-- **`src/repositories/`**: The database bouncers. Only these files are allowed to talk directly to Prisma.
-- **`src/routes/`**: Defines our API endpoints and wires up the controllers and middlewares.
-- **`src/middleware/`**: Handles things that need to happen *before* the controller steps in (like JWT verification, role checking, and global error handling).
-- **`src/validations/`**: Our Zod schemas that ensure incoming data is exactly what we expect.
-- **`src/utils/`**: Handy little helper functions (like hashing passwords or generating QR codes).
+| Method | Endpoint |
+|---------|----------|
+| POST | /auth/register |
+| POST | /auth/login |
 
 ---
 
-## 💡 A Few Assumptions Made During Development
+## Student
 
-To keep the project focused, a few design decisions were made:
-- **Payments**: We aren't hooking into a real payment gateway (like Stripe or Razorpay) for this challenge. Instead, a logged-in student can hit the `/payment/confirm` endpoint to simulate a successful transaction. Hitting this multiple times won't break anything (it's idempotent!).
-- **QR Codes**: Once a payment is confirmed, a QR code is generated. This QR code simply encodes the student's unique `registrationId`. When a volunteer scans the QR, they submit that ID back to the backend to check the student in.
-
----
-
-## 📖 API Documentation (Postman)
-
-Want to test the endpoints? I've got you covered. 
-
-Included in the root directory is a file named **`IEEE_RVCE_Postman_Collection.json`**. 
-Simply import this file into your Postman app. It has all the endpoints pre-configured, complete with example request bodies. It even automatically grabs your JWT token when you log in and uses it for your subsequent requests!
+| Method | Endpoint |
+|---------|----------|
+| POST | /registration |
+| POST | /payment/confirm |
+| GET | /ticket |
 
 ---
 
-*Built with ❤️ for the IEEE RVCE Backend Hiring Challenge.*
+## Volunteer
+
+| Method | Endpoint |
+|---------|----------|
+| GET | /volunteer/registrations |
+| POST | /volunteer/checkin |
+
+---
+
+# Design Decisions
+
+### Simulated Payment
+
+Payment gateway integration is outside the scope of this assignment.
+
+Payment confirmation is simulated using:
+
+```
+POST /payment/confirm
+```
+
+The endpoint is **idempotent**, meaning repeated requests do not create duplicate payments.
+
+---
+
+### QR Code
+
+After payment confirmation,
+
+- a ticket is created
+- a QR code is generated
+
+The QR stores the student's **registrationId**.
+
+Volunteers use this value to check students in.
+
+---
+
+# Validation
+
+Incoming requests are validated using **Zod**.
+
+Examples:
+
+- Invalid Email
+- Missing Fields
+- Invalid UUID
+- Weak Password
+
+All validation errors return meaningful responses.
+
+---
+
+# Authentication & Authorization
+
+JWT Authentication protects secured endpoints.
+
+Role Based Access Control is implemented.
+
+Student:
+- Register
+- Pay
+- View Ticket
+
+Volunteer:
+- View Registrations
+- Check-in Students
+
+---
+
+# Error Handling
+
+Centralized global error handler.
+
+Handles
+
+- Validation Errors
+- Authentication Errors
+- Authorization Errors
+- Database Errors
+- Custom Application Errors
+
+---
+
+# Testing
+
+The project has been manually tested using Postman.
+
+Scenarios tested include:
+
+- User Registration
+- Duplicate Registration
+- Login
+- Invalid Credentials
+- Event Registration
+- Duplicate Event Registration
+- Payment Confirmation
+- Ticket Retrieval
+- Volunteer Login
+- Registration Listing
+- Student Check-in
+- Duplicate Check-in
+- Unauthorized Requests
+- Role Based Access Control
+
+---
+
+# Documentation
+
+Additional documents are available inside the `docs` folder.
+
+- IEEE_RVCE_Postman_Collection.json
+- SCALE.md
+
+---
+
+# Author
+
+**Satyendra Nayak**
+
+IEEE RVCE Backend Recruitment Task
