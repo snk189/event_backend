@@ -304,6 +304,6 @@ Additional documents are available inside the `docs` folder.
 
 # Author
 
-**Satyendra Nayak**
+**Satyendra Nayak K**
 
 IEEE RVCE Backend Recruitment Task
