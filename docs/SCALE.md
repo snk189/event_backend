@@ -1,34 +1,47 @@
 # SCALE.md
 
 **Question:** 
-"2000 users hit registration endpoint within 60 seconds using only 1GB RAM."
+*Registrations open on Friday at 6:00 PM. We expect 2,000 students to hit the registration endpoint within the first 60 seconds. The server has 1 GB of RAM. What is one concrete strategy — implemented or explained in detail — that you would use to keep the server stable during this spike?*
 
-**Discussion:**
+---
 
-Handling a burst of 2000 registrations in 60 seconds (around ~33 req/sec) on a resource-constrained server (1GB RAM) requires careful optimization. If the system is not well-designed, connection exhaustion, memory bloat, and database locking could cause it to crash.
+## The Concrete Strategy: API Rate Limiting (Implemented)
 
-Here is how the architecture addresses this scenario:
+To keep the 1GB RAM server from being overwhelmed by the burst of 2000 students in 60 seconds (around ~33 req/sec), I have implemented **API Rate Limiting** directly into the Express application using the `express-rate-limit` package.
 
-### 1. Stateless APIs
-The Express backend relies on JWT tokens for authentication, making the API entirely stateless. We do not store session data in memory. This ensures that the memory footprint per request remains minimal and we can process requests efficiently without exhausting the 1GB RAM.
+### How it is Implemented in the Codebase
 
-### 2. Request Validation Before DB Access
-Using Zod, we validate all incoming payloads (e.g., email format, required fields) at the middleware layer before the request even reaches the services or database. Invalid requests fail fast, saving precious CPU cycles and database connection resources.
+In `src/app.ts`, the following middleware is applied globally before any requests reach the route handlers:
 
-### 3. Idempotent Registration Endpoint
-The registration service checks if a student is already registered (by unique `studentId`) before proceeding. The schema enforces uniqueness on `studentId` and `registrationNumber` at the database level. Duplicate requests from the same user (e.g., impatiently clicking "Register" multiple times) won't result in corrupted data or multiple tickets.
+```typescript
+import rateLimit from 'express-rate-limit';
 
-### 4. Database Indexing
-Our Prisma schema defines `@unique` constraints on heavily queried fields like `email`, `studentId`, `registrationId`, and `registrationNumber`. These automatically create B-Tree indexes in PostgreSQL, ensuring that lookups during the registration and login process execute in logarithmic time `O(log N)` instead of scanning the entire table.
+const limiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute window
+  max: 50,                 // Limit each IP to 50 requests per window
+  message: {
+    status: 'fail',
+    message: 'Too many requests from this IP, please try again after a minute'
+  }
+});
 
-### 5. Efficient Queries and Connection Pooling
-Prisma Client maintains a connection pool to PostgreSQL. For 1GB RAM, we must avoid opening too many simultaneous connections which could crash the database. We would configure Prisma's connection pool size appropriately (e.g., `connection_limit=10`) within the `DATABASE_URL`. This queues database queries at the Prisma level rather than dropping connections.
+app.use(limiter);
+```
 
-### 6. Rate Limiting (Recommended)
-While not implemented in this MVP, adding a rate limiter (e.g., using `express-rate-limit` with a Redis instance) is critical for a production system to prevent abuse (like DDoS) and ensure fair resource allocation among users.
+### Why This Keeps the Server Stable
 
-### 7. Queue-Based Processing (For Scaling Further)
-If the tasks involved heavy processing (like sending a confirmation email or generating a complex PDF ticket synchronously), the 1GB RAM server would quickly bog down. The solution is to offload these heavy tasks to a background queue (e.g., RabbitMQ or BullMQ). The registration endpoint would simply acknowledge the request, write to DB, and a worker process would generate the QR/email asynchronously.
+1. **Memory Protection (1GB Constraint):**
+   Node.js creates an object in memory for every incoming request. If 2000 users all rapidly refresh the page or run scripts to grab a spot, the server could receive 10,000+ requests in a few seconds. The rate limiter drops excessive requests immediately before parsing heavy JSON bodies, checking JWTs, or invoking database logic, ensuring the memory heap never hits the 1GB ceiling.
 
-### 8. Horizontal Scaling
-If traffic grows beyond 2000 users/minute persistently, a 1GB RAM monolith is not sufficient. Because the app is stateless (JWT + Postgres), we can trivially deploy multiple instances of the Node.js server behind a load balancer (like NGINX or AWS ALB) to scale horizontally.
+2. **Database Connection Pool Exhaustion:**
+   Prisma manages a connection pool to PostgreSQL. If hundreds of users hit the `/registration` endpoint simultaneously, the connection pool will queue the requests. If the queue gets too long, requests timeout, or the database process crashes due to context-switching overhead. By rate-limiting at the Express layer, we enforce a manageable trickle of requests (e.g., 50 per IP) that the Prisma connection pool can comfortably handle.
+
+3. **Preventing Malicious Abuse (DDoS/Bots):**
+   In highly anticipated university events, students often write scripts to guarantee a ticket. Rate limiting ensures that a single IP address cannot monopolize the server's resources. It distributes the server's limited 1GB RAM and CPU time fairly among all incoming real connections.
+
+### Secondary Defensive Strategies Implemented
+
+Alongside Rate Limiting, the backend leverages several other structural choices to ensure stability:
+- **Stateless Architecture:** No session data is stored in RAM. Authentication is handled purely via JWTs.
+- **Fail-Fast Validation:** Zod validates incoming payloads before any DB queries are fired, rejecting malformed requests at the earliest layer.
+- **Database Indexing:** Crucial fields like `email`, `studentId`, and `registrationId` have unique indexes (`@unique`), ensuring that lookups execute in `O(log N)` time rather than triggering full table scans that lock the database.

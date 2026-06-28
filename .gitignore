@@ -121,3 +121,5 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+qr.html
