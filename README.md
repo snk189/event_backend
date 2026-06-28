@@ -165,6 +165,24 @@ npm start
 
 ---
 
+# Testing Accounts
+
+### How to create a volunteer account for testing
+
+To create a volunteer account to test the gate check-in functionality, send a `POST` request to `/auth/register` with the `role` field set to `VOLUNTEER`:
+
+```json
+{
+  "name": "Test Volunteer",
+  "email": "volunteer@test.com",
+  "password": "password123",
+  "role": "VOLUNTEER"
+}
+```
+*Note: A pre-configured request for this is already included in the Postman Collection.*
+
+---
+
 # API Endpoints
 
 ## Authentication
